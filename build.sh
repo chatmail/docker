@@ -6,4 +6,5 @@
 # must be passed as a build arg from the host.
 
 export GIT_HASH=$(git rev-parse HEAD)
+cp "$(dirname "$0")/.dockerignore" .dockerignore
 exec docker compose -f docker/docker-compose.yaml build "$@"
