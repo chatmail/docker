@@ -20,7 +20,7 @@ services:
       # - ./chatmail.ini:/etc/chatmail/chatmail.ini
 
       ## Custom website:
-      # - ./custom/www:/opt/chatmail-www
+      # - ./data/www:/opt/chatmail-www
 
       ## Debug — mount scripts for live editing:
       # - ./chatmail-init.sh:/chatmail-init.sh

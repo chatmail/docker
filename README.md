@@ -7,92 +7,94 @@ This repository contains the Docker setup for [chatmail relay](https://github.co
 > - The image wraps the cmdeploy process in a Debian-systemd image with r/w access to `/sys/fs`
 > - Currently amd64-only (arm64 should work but is untested).
 
-## Getting started
+### Pre-built image
 
-Clone the relay repo and add this repository as a submodule:
-
-```bash
-git clone https://github.com/chatmail/relay
-cd relay
-git submodule add https://github.com/chatmail/docker docker
-cd docker
-```
-
-## Setup Preparation
-
-We use `chat.example.org` as the chatmail domain in the following
-steps. Please substitute it with your own domain.
-
-1. Install docker and docker compose v2 (check with `docker compose version`), install, e.g., on
-    - Debian 12 through the [official install instructions](https://docs.docker.com/engine/install/debian/#install-using-the-repository)
-    - Debian 13+ with `apt install docker docker-compose`
-
-2. Setup the initial DNS records.
-   The following is an example in the familiar BIND zone file format with
-   a TTL of 1 hour (3600 seconds).
-   Please substitute your domain and IP addresses.
-
-   ```
-   chat.example.org. 3600 IN A 198.51.100.5
-   chat.example.org. 3600 IN AAAA 2001:db8::5
-   www.chat.example.org. 3600 IN CNAME chat.example.org.
-   mta-sts.chat.example.org. 3600 IN CNAME chat.example.org.
-   ```
-
-3. Configure kernel parameters on the host, as these can not be set from the container:
-
-   ```bash
-   echo "fs.inotify.max_user_instances=65536" | sudo tee -a /etc/sysctl.d/99-inotify.conf
-   echo "fs.inotify.max_user_watches=65536" | sudo tee -a /etc/sysctl.d/99-inotify.conf
-   sudo sysctl --system
-   ```
-
-## Docker Compose Setup
-
-Pre-built images are available from GitHub Container Registry. The
-`main` branch and tagged releases are pushed automatically by CI:
+Pre-built images are available from GitHub Container Registry. The `main` branch and
+tagged releases are pushed automatically by CI:
 
 ```bash
-docker pull ghcr.io/chatmail/relay:main      # latest main branch
-docker pull ghcr.io/chatmail/relay:1.2.3     # tagged release
+docker pull ghcr.io/chatmail/docker:main      # latest main branch
+docker pull ghcr.io/chatmail/docker:1.2.3     # tagged release
 ```
+
+Install instructions follow for use with Docker Compose.
+
+## Prerequisites
+
+### 1. Install Docker and Docker Compose v2
+
+Check your version with:
+```bash
+docker compose version
+```
+
+Install on:
+- **Debian 12** via [official install instructions](https://docs.docker.com/engine/install/debian/#install-using-the-repository)
+- **Debian 13+** with `apt install docker docker-compose`
+
+### 2. Configure kernel parameters
+
+These must be set on the host, as they cannot be set from the container:
+
+```bash
+echo "fs.inotify.max_user_instances=65536" | sudo tee -a /etc/sysctl.d/99-inotify.conf
+echo "fs.inotify.max_user_watches=65536" | sudo tee -a /etc/sysctl.d/99-inotify.conf
+sudo sysctl --system
+```
+
+### 3. Setup DNS records
+
+The following is an example in BIND zone file format with a TTL of 1 hour (3600 seconds).
+Substitute `chat.example.org` with your domain and update IP addresses:
+
+```
+chat.example.org. 3600 IN A 198.51.100.5
+chat.example.org. 3600 IN AAAA 2001:db8::5
+www.chat.example.org. 3600 IN CNAME chat.example.org.
+mta-sts.chat.example.org. 3600 IN CNAME chat.example.org.
+```
+
+## Installation
 
 ### Create service directory
 
-Either:
+Choose one approach:
 
-- Create a service directory and download the compose files:
+**Option A: Download compose files directly**
 
-  ```bash
-  mkdir -p /srv/chatmail-relay && cd /srv/chatmail-relay
-  wget https://raw.githubusercontent.com/deltachat/docker/refs/heads/main/docker-compose.yaml
-  wget https://raw.githubusercontent.com/deltachat/docker/refs/heads/main/docker-compose.override.yaml.example -O docker-compose.override.yaml
-  ```
+```bash
+mkdir -p /srv/chatmail-relay && cd /srv/chatmail-relay
+wget https://raw.githubusercontent.com/chatmail/docker/main/docker-compose.yaml
+wget https://raw.githubusercontent.com/chatmail/docker/main/docker-compose.override.yaml.example -O docker-compose.override.yaml
+```
 
-- or clone the docker repo directly:
+**Option B: Clone the docker repo**
 
-  ```bash
-  git clone https://github.com/deltachat/docker
-  cd docker
-  ```
+```bash
+git clone https://github.com/chatmail/docker
+cd docker
+```
 
-### Customize and start
+### Configure and start
 
-1. Set the fully qualified domain name of the relay:
+1. Set the fully qualified domain name (use `chat.example.org` or your own domain):
 
    ```bash
    echo 'MAIL_DOMAIN=chat.example.org' > .env
    ```
 
-   The container generates a `chatmail.ini` with defaults from
-   `MAIL_DOMAIN` on first start. To customize chatmail settings, mount
-   your own `chatmail.ini` instead (see [Custom chatmail.ini](#custom-chatmailiini) below).
+   The container generates a `chatmail.ini` with defaults from `MAIL_DOMAIN` on first start.
+   To customize chatmail settings, mount your own `chatmail.ini` instead
+   (see [Custom chatmail.ini](#custom-chatmailiini) below).
 
-2. All local customizations (data paths, extra volumes, config mounts) go in
-   `docker-compose.override.yaml`, which Compose merges automatically with
-   the base file. By default, all data is stored in docker volumes, you will
-   likely want to at least create and configure the mail storage location, but
-   you might also want to configure external TLS certificates there.
+2. Configure local customizations in `docker-compose.override.yaml`:
+
+   By default, all data is stored in docker volumes. You'll likely want to:
+   - Create and configure the mail storage location
+   - Configure external TLS certificates (if not using auto-generated certs)
+   - Customize the website
+
+   See the [Customization](#customization) section for examples.
 
 3. Start the container:
 
@@ -101,46 +103,46 @@ Either:
    docker compose logs -f chatmail   # view logs, Ctrl+C to exit
    ```
 
-4. After installation is complete, open `https://chat.example.org` in
-   your browser.
+4. After installation is complete, open `https://chat.example.org` in your browser.
 
-## Finish install and test
+## Testing and finishing
 
-You can test the installation with:
+### Test the installation
 
 ```bash
 pip install cmping
 cmping chat.example.org
-# or
-uvx cmping chat.example.org # if you use https://docs.astral.sh/uv/
+# alternatively, if you use https://docs.astral.sh/uv/
+uvx cmping chat.example.org
 ```
 
-You should check and extend your DNS records for better interoperability:
+### Check and extend DNS records
+
+Show required DNS records:
 
 ```bash
-# Show required DNS records
 docker exec chatmail cmdeploy dns --ssh-host @local
 ```
 
-You can check server status with:
+### Check server status
 
 ```bash
 docker exec chatmail cmdeploy status --ssh-host @local
 ```
 
-You can run some benchmarks (can also run from any machine with cmdeploy installed):
+### Run benchmarks
 
 ```bash
 docker exec chatmail cmdeploy bench
 ```
 
-You can run the test suite with:
+### Run the test suite
 
 ```bash
 docker exec chatmail cmdeploy test --ssh-host localhost
 ```
 
-You can look at logs:
+### View logs
 
 ```bash
 docker exec chatmail journalctl -fu postfix@-
@@ -150,14 +152,13 @@ docker exec chatmail journalctl -fu postfix@-
 
 ### Website
 
-You can customize the chatmail landing page by mounting a directory with
-your own website source files.
+Customize the chatmail landing page by mounting a directory with your own website source.
 
 1. Create a directory with your custom website source:
 
    ```bash
-   mkdir -p ./custom/www/src
-   nano ./custom/www/src/index.md
+   mkdir -p ./data/www/src
+   nano ./data/www/src/index.md
    ```
 
 2. Add the volume mount in `docker-compose.override.yaml`:
@@ -166,7 +167,7 @@ your own website source files.
    services:
      chatmail:
        volumes:
-         - ./custom/www:/opt/chatmail-www
+         - ./data/www:/opt/chatmail-www
    ```
 
 3. Restart the service:
@@ -178,8 +179,7 @@ your own website source files.
 
 ### Custom chatmail.ini
 
-If you want to go beyond simply setting the `MAIL_DOMAIN` in `.env`, you
-can use a regular `chatmail.ini` to give you full control.
+For full control over chatmail settings beyond just `MAIL_DOMAIN`:
 
 1. Extract the generated config from a running container:
 
@@ -206,16 +206,16 @@ can use a regular `chatmail.ini` to give you full control.
 
 ### External TLS certificates
 
-If TLS certificates are managed outside the container (e.g. by certbot,
-acmetool, or Traefik on the host), mount them into the container and set
-`TLS_EXTERNAL_CERT_AND_KEY` in `docker-compose.override.yaml`.
-Changed certificates are picked up automatically via inotify.
-See the examples in the example override and the Getting Started guide for details.
+If TLS certificates are managed outside the container (e.g., by certbot, acmetool, or Traefik
+on the host), mount them into the container and set `TLS_EXTERNAL_CERT_AND_KEY`
+in `docker-compose.override.yaml`.
+
+Changed certificates are picked up automatically via inotify. See the examples in
+`docker-compose.override.yaml.example` for details.
 
 ## Migrating from a bare-metal install
 
-If you have an existing bare-metal chatmail installation and want to
-switch to Docker:
+If you have an existing bare-metal chatmail installation and want to switch to Docker:
 
 1. Stop all existing services:
 
@@ -268,3 +268,16 @@ switch to Docker:
    The three `./data/` subdirectories cover all persistent state.
    Everything else is regenerated by the `configure` and `activate`
    stages on container start.
+
+## Development / Contributing
+
+To develop or contribute to the Docker setup:
+
+Clone the relay repo and add this repository as a submodule:
+
+```bash
+git clone https://github.com/chatmail/relay
+cd relay
+git clone https://github.com/chatmail/docker
+cd docker
+```
