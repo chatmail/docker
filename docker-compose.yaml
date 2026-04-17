@@ -18,6 +18,9 @@ services:
       dockerfile: docker/chatmail_relay.dockerfile
       args:
         GIT_HASH: ${GIT_HASH:-unknown}
+        SOURCE_REF: ${SOURCE_REF:-}
+        SOURCE_URL: ${SOURCE_URL:-https://github.com/chatmail/relay.git}
+        BUILD_DATE: ${BUILD_DATE:-}
     image: chatmail-relay:latest
     restart: unless-stopped
     container_name: chatmail

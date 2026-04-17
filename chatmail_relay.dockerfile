@@ -71,6 +71,15 @@ RUN apt-get purge -y gcc python3-dev && \
 # deploys); chatmail-version is overwritten by cmdeploy run and restored
 # from the image version after each deploy in chatmail-init.sh.
 ARG GIT_HASH=unknown
+ARG SOURCE_REF=""
+ARG SOURCE_URL="https://github.com/chatmail/relay.git"
+ARG BUILD_DATE=""
+
+LABEL org.opencontainers.image.revision=$GIT_HASH
+LABEL org.opencontainers.image.source=$SOURCE_URL
+LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL com.chatmail.source.ref=$SOURCE_REF
+
 RUN echo "$GIT_HASH" > /etc/chatmail-image-version && \
     echo "$GIT_HASH" > /etc/chatmail-version
 
