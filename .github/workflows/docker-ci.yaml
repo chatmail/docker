@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: chatmail/relay
-          ref: ${{ github.event.client_payload.relay_ref || '' }}
+          ref: ${{ github.event.client_payload.relay_ref || 'j4n/purge-resolvconf' }}
 
       - name: Checkout docker repo
         uses: actions/checkout@v4
