@@ -64,9 +64,11 @@ if [ -z "${CMDEPLOY_STAGES:-}" ] \
 else
     export CMDEPLOY_STAGES="${CMDEPLOY_STAGES:-configure,activate}"
 
-    # Skip DNS check when MAIL_DOMAIN is a bare IP address
+    # Skip DNS check for IP addresses and underscore domains (cmlxc local domains)
     SKIP_DNS=""
-    if [[ "$MAIL_DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "$MAIL_DOMAIN" =~ : ]]; then
+    if [[ "$MAIL_DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+        || [[ "$MAIL_DOMAIN" =~ : ]] \
+        || [[ "$MAIL_DOMAIN" =~ _ ]]; then
         SKIP_DNS="--skip-dns-check"
     fi
     $CMDEPLOY run --config "$CHATMAIL_INI" --ssh-host @local $SKIP_DNS
