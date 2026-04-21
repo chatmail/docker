@@ -1,0 +1,73 @@
+# Clean up old Docker images from GHCR.
+#
+# Triggers:
+#   1. Weekly schedule -- prune untagged manifests, keep 20 most recent
+#   2. Branch delete -- remove images tagged with that branch name
+#   3. Manual -- workflow_dispatch for ad-hoc cleanup
+#
+# Requires: packages:write permission (for delete-package-versions)
+
+name: Clean up GHCR images
+
+on:
+  schedule:
+    - cron: '23 3 * * 1'  # Monday 03:23 UTC
+  delete:  # branch/tag deletion
+  workflow_dispatch:
+
+env:
+  PACKAGE_NAME: docker
+
+jobs:
+  prune-untagged:
+    name: Prune untagged images
+    runs-on: ubuntu-latest
+    if: github.event_name != 'delete'
+    permissions:
+      packages: write
+    steps:
+      - name: Delete untagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ env.PACKAGE_NAME }}
+          package-type: container
+          delete-only-untagged-versions: true
+          min-versions-to-keep: 20
+
+  prune-old-sha:
+    name: Prune old SHA tags
+    runs-on: ubuntu-latest
+    if: github.event_name != 'delete'
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old SHA-tagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ env.PACKAGE_NAME }}
+          package-type: container
+          min-versions-to-keep: 30
+          ignore-versions: '^(main|latest|\d+\.\d+)$'
+
+  cleanup-branch:
+    name: Clean up branch images
+    runs-on: ubuntu-latest
+    if: github.event_name == 'delete'
+    permissions:
+      packages: write
+    steps:
+      - name: Compute branch tag
+        id: tag
+        run: |
+          # refs/heads/j4n/foo -> j4n-foo
+          BRANCH="${{ github.event.ref }}"
+          TAG=$(echo "$BRANCH" | sed 's|/|-|g')
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Delete branch-tagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ env.PACKAGE_NAME }}
+          package-type: container
+          ignore-versions: '^(?!${{ steps.tag.outputs.tag }}$).*$'
+          num-old-versions-to-delete: 100
