@@ -110,10 +110,11 @@ jobs:
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
 
           TAGS="${{ steps.meta.outputs.tags }}"
+          # Always add relay sha tag -- metadata-action's type=sha uses the
+          # docker repo's commit, not the relay's.
+          TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${RELAY_SHA_SHORT}"
           if [ "${{ github.event_name }}" != "push" ] && \
              [ "${{ github.event_name }}" != "pull_request" ]; then
-            # relay sha tag
-            TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${RELAY_SHA_SHORT}"
             # branch/tag: main -> :main, j4n/foo -> :j4n-foo
             BRANCH_TAG=$(echo "${RELAY_REF}" | sed 's|/|-|g')
             TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${BRANCH_TAG}"
