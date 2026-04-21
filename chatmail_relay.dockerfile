@@ -75,6 +75,8 @@ ARG SOURCE_REF=""
 ARG SOURCE_URL="https://github.com/chatmail/relay.git"
 ARG BUILD_DATE=""
 
+LABEL org.opencontainers.image.title="chatmail-relay"
+LABEL org.opencontainers.image.description="Chatmail relay server - optimized email for Delta Chat"
 LABEL org.opencontainers.image.revision=$GIT_HASH
 LABEL org.opencontainers.image.source=$SOURCE_URL
 LABEL org.opencontainers.image.created=$BUILD_DATE
