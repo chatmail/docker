@@ -173,6 +173,5 @@ jobs:
       cmlxc_ref: j4n/docker-support
       cmlxc_commands: |
         cmlxc init
-        cmlxc docker pull --tag ${{ needs.build.outputs.image_tag }}
         cmlxc docker deploy dock0 --source ghcr:${{ needs.build.outputs.image_tag }}
         cmlxc test-cmdeploy dock0 --relay-ref ${{ needs.build.outputs.relay_ref }}
