@@ -158,11 +158,10 @@ jobs:
     name: Integration test
     needs: build
     if: github.event_name != 'pull_request'
-    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@main
+    # TODO: revert to @main once cmlxc docker support is merged
+    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
     with:
-      # TODO: remove pip install override once cmlxc docker support is on main
       cmlxc_commands: |
-        pip install git+https://github.com/chatmail/cmlxc@j4n/docker-support
         cmlxc init
         cmlxc docker pull --tag ${{ needs.build.outputs.image_tag }}
         cmlxc docker deploy dock0 --source ghcr:${{ needs.build.outputs.image_tag }}
