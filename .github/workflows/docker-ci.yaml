@@ -161,6 +161,8 @@ jobs:
     # TODO: revert to @main once cmlxc docker support is merged
     uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
     with:
+      # TODO: revert to main once cmlxc docker support is merged
+      cmlxc_ref: j4n/docker-support
       cmlxc_commands: |
         cmlxc init
         cmlxc docker pull --tag ${{ needs.build.outputs.image_tag }}
