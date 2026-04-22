@@ -125,10 +125,9 @@ jobs:
           echo "${TAGS}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-          # -- Description: commit list since last image --
+          # -- Changes: commit list since last image (stored in custom label) --
           BASE_SHA=""
           if [ "${RELAY_REF}" = "main" ]; then
-            # Previous :main image's relay SHA from its sha-XXXXXXX tag
             BASE_SHA=$(gh api "orgs/chatmail/packages/container/docker/versions?per_page=50" \
               --jq '[.[]
                 | select(.metadata.container.tags | any(. == "main"))
@@ -137,17 +136,18 @@ jobs:
           else
             BASE_SHA=$(gh api "repos/chatmail/relay/commits/main" --jq '.sha[:7]' 2>/dev/null) || true
           fi
-          COMMITS=""
+          CHANGES=""
           if [ -n "$BASE_SHA" ] && [ "$BASE_SHA" != "$RELAY_SHA_SHORT" ]; then
-            COMMITS=$(gh api "repos/chatmail/relay/compare/${BASE_SHA}...${RELAY_SHA}" \
-              --jq '.commits[] | "- " + .sha[:7] + " " + (.commit.message | split("\n")[0])' 2>/dev/null) || true
+            CHANGES=$(gh api "repos/chatmail/relay/compare/${BASE_SHA}...${RELAY_SHA}" \
+              --jq '.commits[] | .sha[:7] + " " + (.commit.message | split("\n")[0])' 2>/dev/null) || true
           fi
-          if [ -n "$COMMITS" ]; then
-            COUNT=$(echo "$COMMITS" | wc -l)
-            DESC="relay/${RELAY_REF} (${COUNT} commits since sha-${BASE_SHA}):"$'\n'"${COMMITS}"
-          else
-            DESC="relay/${RELAY_REF}: ${COMMIT_MSG}"
+          if [ -z "$CHANGES" ]; then
+            CHANGES="${RELAY_SHA_SHORT} ${COMMIT_MSG}"
           fi
+
+          # Static description for GHCR package page (512 char limit, text-only)
+          DESC="Chatmail Relay Server"
+
           {
             echo "labels<<EOF"
             echo "org.opencontainers.image.title=chatmail-relay"
@@ -156,6 +156,15 @@ jobs:
             echo "org.opencontainers.image.source=https://github.com/chatmail/relay"
             echo "org.opencontainers.image.created=${BUILD_DATE}"
             echo "com.chatmail.source.ref=${RELAY_REF}"
+            echo "com.chatmail.changes=${CHANGES}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          # Index-level annotations so GHCR picks up the description
+          {
+            echo "annotations<<EOF"
+            echo "org.opencontainers.image.title=chatmail-relay"
+            echo "org.opencontainers.image.description=${DESC}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -170,6 +179,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
