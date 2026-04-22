@@ -47,7 +47,8 @@ jobs:
     name: Build Docker image
     runs-on: ubuntu-latest
     outputs:
-      image_tag: ${{ steps.short-tag.outputs.tag }}
+      image_tag: ${{ steps.meta.outputs.tag }}
+      relay_ref: ${{ steps.meta.outputs.relay_ref }}
     permissions:
       contents: read
       packages: write
@@ -83,58 +84,65 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels)
+      - name: Compute build metadata
         id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            # Tagged releases: v1.2.3 -> :1.2.3, :1.2, :latest
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            # Branch pushes: main -> :main, feature/foo -> :feature-foo
-            type=ref,event=branch
-            # Always include sha
-            type=sha
-
-      - name: Resolve relay SHA and compute tags
-        id: tags
         run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           RELAY_REF="${{ steps.relay.outputs.ref }}"
-          # Get the actual checked-out SHA (resolves branches/tags to commits)
+
+          # Relay SHA comes from the relay checkout at workspace root
           RELAY_SHA=$(git rev-parse HEAD)
           RELAY_SHA_SHORT="${RELAY_SHA:0:7}"
           BUILD_DATE=$(git log -1 --format=%cI)
+          COMMIT_MSG=$(git log -1 --format=%s)
+
           echo "relay_sha=${RELAY_SHA}" >> "$GITHUB_OUTPUT"
           echo "relay_sha_short=${RELAY_SHA_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "relay_ref=${RELAY_REF}" >> "$GITHUB_OUTPUT"
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${RELAY_SHA_SHORT}" >> "$GITHUB_OUTPUT"
 
-          TAGS="${{ steps.meta.outputs.tags }}"
-          # Always add relay sha tag -- metadata-action's type=sha uses the
-          # docker repo's commit, not the relay's.
-          TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${RELAY_SHA_SHORT}"
-          if [ "${{ github.event_name }}" != "push" ] && \
-             [ "${{ github.event_name }}" != "pull_request" ]; then
-            # branch/tag: main -> :main, j4n/foo -> :j4n-foo
+          # -- Tags --
+          # Always: relay SHA tag
+          TAGS="${IMAGE}:sha-${RELAY_SHA_SHORT}"
+          if [ "${{ github.event_name }}" = "push" ] || \
+             [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Docker-repo push/PR: add docker branch tag
+            TAGS="${TAGS}"$'\n'"${IMAGE}:${{ github.ref_name }}"
+          else
+            # Dispatch: tags based on relay ref
             BRANCH_TAG=$(echo "${RELAY_REF}" | sed 's|/|-|g')
-            TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${BRANCH_TAG}"
-            # semver tags for release tags
+            TAGS="${TAGS}"$'\n'"${IMAGE}:${BRANCH_TAG}"
             if [[ "${RELAY_REF}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
               VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
               MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-              TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
-              TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${MINOR}"
-              TAGS="${TAGS}"$'\n'"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+              TAGS="${TAGS}"$'\n'"${IMAGE}:${VERSION}"
+              TAGS="${TAGS}"$'\n'"${IMAGE}:${MINOR}"
+              TAGS="${TAGS}"$'\n'"${IMAGE}:latest"
             fi
           fi
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           echo "${TAGS}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Compute short tag for test job
-        id: short-tag
-        run: |
-          echo "tag=sha-${{ steps.tags.outputs.relay_sha_short }}" >> "$GITHUB_OUTPUT"
+          # -- Labels --
+          # Use relay commit message as description on dispatch builds
+          if [ "${{ github.event_name }}" = "repository_dispatch" ] || \
+             [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DESC="relay/${RELAY_REF}: ${COMMIT_MSG}"
+          else
+            DESC="Chatmail relay server - optimized email for Delta Chat"
+          fi
+          {
+            echo "labels<<EOF"
+            echo "org.opencontainers.image.title=chatmail-relay"
+            echo "org.opencontainers.image.description=${DESC}"
+            echo "org.opencontainers.image.revision=${RELAY_SHA}"
+            echo "org.opencontainers.image.source=https://github.com/chatmail/relay"
+            echo "org.opencontainers.image.created=${BUILD_DATE}"
+            echo "com.chatmail.source.ref=${RELAY_REF}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Copy .dockerignore to build context
         run: cp docker/.dockerignore .dockerignore
@@ -145,14 +153,14 @@ jobs:
           context: .
           file: docker/chatmail_relay.dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.tags.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            GIT_HASH=${{ steps.tags.outputs.relay_sha }}
-            SOURCE_REF=${{ steps.relay.outputs.ref }}
-            BUILD_DATE=${{ steps.tags.outputs.build_date }}
+            GIT_HASH=${{ steps.meta.outputs.relay_sha }}
+            SOURCE_REF=${{ steps.meta.outputs.relay_ref }}
+            BUILD_DATE=${{ steps.meta.outputs.build_date }}
 
   test:
     name: Integration test
@@ -167,4 +175,4 @@ jobs:
         cmlxc init
         cmlxc docker pull --tag ${{ needs.build.outputs.image_tag }}
         cmlxc docker deploy dock0 --source ghcr:${{ needs.build.outputs.image_tag }}
-        cmlxc test-cmdeploy dock0
+        cmlxc test-cmdeploy dock0 --relay-ref ${{ needs.build.outputs.relay_ref }}
