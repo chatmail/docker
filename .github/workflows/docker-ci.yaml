@@ -160,11 +160,14 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-          # Index-level annotations so GHCR picks up the description
+          # Annotations on the OCI image index so GHCR shows the description.
+          # "index:" prefix = top-level index object annotations.
+          # "manifest-descriptor:" = per-entry inside the index (not what GHCR reads).
+          # No prefix = per-platform image manifest.
           {
             echo "annotations<<EOF"
-            echo "org.opencontainers.image.title=chatmail-relay"
-            echo "org.opencontainers.image.description=${DESC}"
+            echo "index:org.opencontainers.image.title=chatmail-relay"
+            echo "index:org.opencontainers.image.description=${DESC}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
