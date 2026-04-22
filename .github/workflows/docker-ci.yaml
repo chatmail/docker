@@ -125,13 +125,28 @@ jobs:
           echo "${TAGS}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-          # -- Labels --
-          # Use relay commit message as description on dispatch builds
-          if [ "${{ github.event_name }}" = "repository_dispatch" ] || \
-             [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            DESC="relay/${RELAY_REF}: ${COMMIT_MSG}"
+          # -- Description: commit list since last image --
+          BASE_SHA=""
+          if [ "${RELAY_REF}" = "main" ]; then
+            # Previous :main image's relay SHA from its sha-XXXXXXX tag
+            BASE_SHA=$(gh api "orgs/chatmail/packages/container/docker/versions?per_page=50" \
+              --jq '[.[]
+                | select(.metadata.container.tags | any(. == "main"))
+                | .metadata.container.tags[] | select(startswith("sha-"))
+                | ltrimstr("sha-")] | .[0] // empty' 2>/dev/null) || true
           else
-            DESC="Chatmail relay server - optimized email for Delta Chat"
+            BASE_SHA=$(gh api "repos/chatmail/relay/commits/main" --jq '.sha[:7]' 2>/dev/null) || true
+          fi
+          COMMITS=""
+          if [ -n "$BASE_SHA" ] && [ "$BASE_SHA" != "$RELAY_SHA_SHORT" ]; then
+            COMMITS=$(gh api "repos/chatmail/relay/compare/${BASE_SHA}...${RELAY_SHA}" \
+              --jq '.commits[] | "- " + .sha[:7] + " " + (.commit.message | split("\n")[0])' 2>/dev/null) || true
+          fi
+          if [ -n "$COMMITS" ]; then
+            COUNT=$(echo "$COMMITS" | wc -l)
+            DESC="relay/${RELAY_REF} (${COUNT} commits since sha-${BASE_SHA}):"$'\n'"${COMMITS}"
+          else
+            DESC="relay/${RELAY_REF}: ${COMMIT_MSG}"
           fi
           {
             echo "labels<<EOF"
