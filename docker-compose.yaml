@@ -21,7 +21,7 @@ services:
         SOURCE_REF: ${SOURCE_REF:-}
         SOURCE_URL: ${SOURCE_URL:-https://github.com/chatmail/relay.git}
         BUILD_DATE: ${BUILD_DATE:-}
-    image: ghcr.io/chatmail/docker:main
+    image: ${CHATMAIL_IMAGE:-ghcr.io/chatmail/docker:main}
     restart: unless-stopped
     container_name: chatmail
     # Required for systemd — use only one of the following:
