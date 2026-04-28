@@ -202,4 +202,4 @@ jobs:
       cmlxc_commands: |
         cmlxc init
         cmlxc docker deploy dock0 --source ghcr:${{ needs.build.outputs.image_tag }}
-        cmlxc test-cmdeploy dock0 --relay-ref ${{ needs.build.outputs.relay_ref }}
+        RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
