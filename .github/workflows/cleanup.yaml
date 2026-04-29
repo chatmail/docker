@@ -27,7 +27,7 @@ jobs:
       packages: write
     steps:
       - name: Delete untagged versions
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         with:
           package-name: ${{ env.PACKAGE_NAME }}
           package-type: container
@@ -42,7 +42,7 @@ jobs:
       packages: write
     steps:
       - name: Delete old SHA-tagged versions
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         with:
           package-name: ${{ env.PACKAGE_NAME }}
           package-type: container
@@ -58,14 +58,15 @@ jobs:
     steps:
       - name: Compute branch tag
         id: tag
+        env:
+          EVENT_REF: ${{ github.event.ref }}
         run: |
           # refs/heads/j4n/foo -> j4n-foo
-          BRANCH="${{ github.event.ref }}"
-          TAG=$(echo "$BRANCH" | sed 's|/|-|g')
+          TAG=$(echo "$EVENT_REF" | sed 's|/|-|g')
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Delete branch-tagged versions
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         with:
           package-name: ${{ env.PACKAGE_NAME }}
           package-type: container
