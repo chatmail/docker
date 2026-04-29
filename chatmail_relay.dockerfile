@@ -108,6 +108,7 @@ RUN rm -f /etc/nginx/sites-enabled/default
 COPY --chmod=555 ./docker/scripts/chatmail-init.sh /chatmail-init.sh
 COPY --chmod=555 ./docker/scripts/entrypoint.sh /entrypoint.sh
 COPY --chmod=555 ./docker/scripts/healthcheck.sh /healthcheck.sh
+COPY --chmod=555 ./docker/scripts/get_service_logs.sh /usr/local/sbin/get-service-logs
 
 HEALTHCHECK --interval=10s --start-period=180s --timeout=10s --retries=3 \
   CMD /healthcheck.sh
