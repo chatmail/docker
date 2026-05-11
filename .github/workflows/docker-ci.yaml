@@ -119,8 +119,9 @@ jobs:
           TAGS="${IMAGE}:sha-${RELAY_SHA_SHORT}"
           if [ "$EVENT_NAME" = "push" ] || \
              [ "$EVENT_NAME" = "pull_request" ]; then
-            # Docker-repo push/PR: add docker branch tag
-            TAGS="${TAGS}"$'\n'"${IMAGE}:${REF_NAME}"
+            # Docker-repo push/PR: add docker branch tag (sanitize slashes)
+            BRANCH_TAG=$(echo "${REF_NAME}" | sed 's|/|-|g')
+            TAGS="${TAGS}"$'\n'"${IMAGE}:${BRANCH_TAG}"
           else
             # Dispatch: tags based on relay ref
             BRANCH_TAG=$(echo "${RELAY_REF}" | sed 's|/|-|g')
