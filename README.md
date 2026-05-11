@@ -271,13 +271,13 @@ If you have an existing bare-metal chatmail installation and want to switch to D
 
 ## Development / Contributing
 
-To develop or contribute to the Docker setup:
-
-Clone the relay repo and add this repository as a submodule:
+Clone the relay repo and add this repository inside, then copy the `.dockerignore` and build:
 
 ```bash
 git clone https://github.com/chatmail/relay
 cd relay
 git clone https://github.com/chatmail/docker
 cd docker
+cp .dockerignore ..
+docker compose build
 ```
