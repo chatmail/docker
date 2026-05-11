@@ -207,7 +207,6 @@ jobs:
     name: Integration test
     needs: build
     permissions: {}
-    if: github.event_name != 'pull_request'
     # TODO: revert to @main once cmlxc docker support is merged
     uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
     with:
