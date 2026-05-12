@@ -14,8 +14,8 @@ fi
 if [ ! -f /etc/dkimkeys/opendkim.private ]; then
     /usr/sbin/opendkim-genkey -D /etc/dkimkeys -d "$MAIL_DOMAIN" -s opendkim
 fi
-# Fix ownership for bind-mounted keys (host opendkim UID may differ from container)
-chown -R opendkim:opendkim /etc/dkimkeys
+# Fix owner for bind-mounted keys (host opendkim UID may differ from container).
+chown -R opendkim /etc/dkimkeys
 echo "[INFO] Fixing /etc/dkimkeys ownership"
 
 # Create chatmail.ini, skip if mounted
