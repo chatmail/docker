@@ -14,7 +14,14 @@ services:
 
       # - ./data/mail:/home/vmail
       ## Or mount from an existing bare-metal install.
+      ## Service user UIDs differ between native and Docker installs. On first
+      ## start the container fixes /etc/dkimkeys and /home/vmail ownership
+      ## automatically. Switching back to native requires a manual chown:
+      ##   chown -R vmail:vmail /home/vmail
+      ##   chown -R opendkim:opendkim /etc/dkimkeys
       # - /home/vmail:/home/vmail
+      # - /etc/dkimkeys:/etc/dkimkeys
+      # - /var/lib/acme:/var/lib/acme
 
       ## Mount your own chatmail.ini (skips auto-generation):
       # - ./chatmail.ini:/etc/chatmail/chatmail.ini

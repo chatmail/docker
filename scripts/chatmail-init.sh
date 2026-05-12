@@ -6,7 +6,7 @@ export CHATMAIL_INI="${CHATMAIL_INI:-/etc/chatmail/chatmail.ini}"
 CMDEPLOY=/opt/cmdeploy/bin/cmdeploy
 
 if [ -z "$MAIL_DOMAIN" ]; then
-    echo "ERROR: Environment variable 'MAIL_DOMAIN' must be set!" >&2
+    echo "[ERROR] Environment variable 'MAIL_DOMAIN' must be set!" >&2
     exit 1
 fi
 
@@ -16,6 +16,7 @@ if [ ! -f /etc/dkimkeys/opendkim.private ]; then
 fi
 # Fix ownership for bind-mounted keys (host opendkim UID may differ from container)
 chown -R opendkim:opendkim /etc/dkimkeys
+echo "[INFO] Fixing /etc/dkimkeys ownership"
 
 # Create chatmail.ini, skip if mounted
 mkdir -p "$(dirname "$CHATMAIL_INI")"
@@ -44,6 +45,13 @@ fi
 # but Dovecot only creates it on first mail delivery)
 mkdir -p "/home/vmail/mail/${MAIL_DOMAIN}"
 chown vmail:vmail "/home/vmail/mail/${MAIL_DOMAIN}"
+
+# Fix ownership for bind-mounted mail store (host vmail UID may differ from container).
+# Only recurse when the top-level dir is mis-owned, can be slow on large mailstores.
+if [ "$(stat -c %U /home/vmail 2>/dev/null)" != "vmail" ]; then
+    echo "[INFO] Fixing /home/vmail ownership"
+    chown -R vmail:vmail /home/vmail
+fi
 
 # --- Deploy fingerprint: skip cmdeploy run if nothing changed ---
 # On restart with identical image+config, systemd already brings up all
