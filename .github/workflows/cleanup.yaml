@@ -47,12 +47,12 @@ jobs:
           package-name: ${{ env.PACKAGE_NAME }}
           package-type: container
           min-versions-to-keep: 30
-          ignore-versions: '^(main|latest|\d+\.\d+)$'
+          ignore-versions: '^(main|latest|\d+\.\d+|\d+\.\d+\.\d+)$'
 
   cleanup-branch:
     name: Clean up branch images
     runs-on: ubuntu-latest
-    if: github.event_name == 'delete'
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch'
     permissions:
       packages: write
     steps:
