@@ -6,7 +6,7 @@ set -e
 test -f /run/chatmail-init.done
 
 # Core services
-services="chatmail-metadata doveauth dovecot filtermail filtermail-incoming nginx postfix unbound"
+services="chatmail-metadata doveauth dovecot filtermail filtermail-incoming filtermail-transport nginx postfix unbound"
 
 # Optional services
 for svc in iroh-relay turnserver; do
