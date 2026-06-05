@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 
-# Build systemd-debian:12 base image locally
-# Vendoring https://github.com/j8r/dockerfiles/blob/master/systemd/debian/Dockerfile thats behind 
-# https://hub.docker.com/r/jrei/systemd-debian/tags?name=bookworm
-FROM debian:12 AS systemd-base
+ARG DEBIAN_VERSION=12
 
-ARG VERSION=12
+# Build systemd-debian base image locally
+# Vendoring https://github.com/j8r/dockerfiles/blob/master/systemd/debian/Dockerfile thats behind
+# https://hub.docker.com/r/jrei/systemd-debian/tags
+FROM debian:${DEBIAN_VERSION} AS systemd-base
 
 ENV LC_ALL=C
 ENV DEBIAN_FRONTEND=noninteractive

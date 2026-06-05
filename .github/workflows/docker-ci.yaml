@@ -5,7 +5,7 @@
 #   2. repository_dispatch from chatmail/relay -- builds the dispatched relay ref
 #   3. workflow_dispatch -- manual build of any relay branch/tag
 #
-# Tags: sha-<relay-7char>, branch name, semver (on release tags)
+# Tags: sha-<relay-7char>[distro_suffix], branch name[distro_suffix], semver release tags (Bookworm only)
 # PRs: build only, no push
 
 name: Build and push chatmail-relay image
@@ -46,10 +46,18 @@ env:
 
 jobs:
   build:
-    name: Build Docker image
+    name: Build Docker image (debian ${{ matrix.debian_version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - debian_version: 12
+            distro_suffix: ""
+          - debian_version: 13
+            distro_suffix: "-trixie"
     outputs:
-      image_tag: ${{ steps.meta.outputs.tag }}
+      relay_sha_short: ${{ steps.meta.outputs.relay_sha_short }}
       relay_ref: ${{ steps.meta.outputs.relay_ref }}
     permissions:
       contents: read
@@ -98,6 +106,7 @@ jobs:
           RELAY_REF_INPUT: ${{ steps.relay.outputs.ref }}
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
+          DISTRO_SUFFIX: ${{ matrix.distro_suffix }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           IMAGE="${REGISTRY}/${IMAGE_NAME}"
@@ -113,38 +122,40 @@ jobs:
           echo "relay_sha_short=${RELAY_SHA_SHORT}" >> "$GITHUB_OUTPUT"
           echo "relay_ref=${RELAY_REF}" >> "$GITHUB_OUTPUT"
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
-          echo "tag=sha-${RELAY_SHA_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${RELAY_SHA_SHORT}${DISTRO_SUFFIX}" >> "$GITHUB_OUTPUT"
 
           # -- Tags --
-          # Always: relay SHA tag
-          TAGS="${IMAGE}:sha-${RELAY_SHA_SHORT}"
+          # Always: relay SHA tag (with distro suffix)
+          TAGS="${IMAGE}:sha-${RELAY_SHA_SHORT}${DISTRO_SUFFIX}"
           if [ "$EVENT_NAME" = "push" ] || \
              [ "$EVENT_NAME" = "pull_request" ]; then
             # Docker-repo push/PR: add docker branch tag (sanitize slashes)
             BRANCH_TAG=$(echo "${REF_NAME}" | sed 's|/|-|g')
-            TAGS="${TAGS}"$'\n'"${IMAGE}:${BRANCH_TAG}"
+            TAGS="${TAGS}"$'\n'"${IMAGE}:${BRANCH_TAG}${DISTRO_SUFFIX}"
           else
             # Dispatch: tags based on relay ref
             BRANCH_TAG=$(echo "${RELAY_REF}" | sed 's|/|-|g')
-            TAGS="${TAGS}"$'\n'"${IMAGE}:${BRANCH_TAG}"
+            TAGS="${TAGS}"$'\n'"${IMAGE}:${BRANCH_TAG}${DISTRO_SUFFIX}"
             if [[ "${RELAY_REF}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
               MAJOR="${BASH_REMATCH[1]}"
               MINOR="${BASH_REMATCH[2]}"
               PATCH="${BASH_REMATCH[3]}"
               VERSION="${MAJOR}.${MINOR}.${PATCH}"
-              TAGS="${TAGS}"$'\n'"${IMAGE}:${VERSION}"$'\n'"${IMAGE}:${MAJOR}.${MINOR}"
-              # `latest` only if this is the highest semver published so far,
+              TAGS="${TAGS}"$'\n'"${IMAGE}:${VERSION}${DISTRO_SUFFIX}"$'\n'"${IMAGE}:${MAJOR}.${MINOR}${DISTRO_SUFFIX}"
+              # `latest` only for Bookworm and only if this is the highest semver published so far,
               # so a back-ported patch on an old minor line cannot clobber it.
-              HIGHEST=$(gh api \
-                "orgs/chatmail/packages/container/docker/versions?per_page=100" \
-                --jq '[.[].metadata.container.tags[]
-                  | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))]
-                  | sort_by(split(".") | map(tonumber)) | last // empty' \
-                2>/dev/null) || true
-              if [ -z "$HIGHEST" ] || \
-                 [ "$(printf '%s\n%s\n' "$HIGHEST" "$VERSION" \
-                      | sort -V | tail -1)" = "$VERSION" ]; then
-                TAGS="${TAGS}"$'\n'"${IMAGE}:latest"
+              if [ -z "${DISTRO_SUFFIX}" ]; then
+                HIGHEST=$(gh api \
+                  "orgs/chatmail/packages/container/docker/versions?per_page=100" \
+                  --jq '[.[].metadata.container.tags[]
+                    | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))]
+                    | sort_by(split(".") | map(tonumber)) | last // empty' \
+                  2>/dev/null) || true
+                if [ -z "$HIGHEST" ] || \
+                   [ "$(printf '%s\n%s\n' "$HIGHEST" "$VERSION" \
+                        | sort -V | tail -1)" = "$VERSION" ]; then
+                  TAGS="${TAGS}"$'\n'"${IMAGE}:latest"
+                fi
               fi
             fi
           fi
@@ -216,9 +227,10 @@ jobs:
             GIT_HASH=${{ steps.meta.outputs.relay_sha }}
             SOURCE_REF=${{ steps.meta.outputs.relay_ref }}
             BUILD_DATE=${{ steps.meta.outputs.build_date }}
+            DEBIAN_VERSION=${{ matrix.debian_version }}
 
-  test:
-    name: Integration test
+  test_bookworm:
+    name: Integration test (bookworm)
     needs: build
     permissions: {}
     # TODO: revert to @main once cmlxc docker support is merged
@@ -228,5 +240,19 @@ jobs:
       cmlxc_version: j4n/docker-support
       cmlxc_commands: |
         cmlxc init
-        cmlxc docker deploy dock0 --source ghcr:${{ needs.build.outputs.image_tag }}
+        cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}
+        RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
+
+  test_trixie:
+    name: Integration test (trixie)
+    needs: build
+    permissions: {}
+    # TODO: revert to @main once cmlxc docker support is merged
+    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
+    with:
+      # TODO: revert to main once cmlxc docker support is merged
+      cmlxc_version: j4n/docker-support
+      cmlxc_commands: |
+        cmlxc init
+        cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie
         RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
