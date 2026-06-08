@@ -27,6 +27,7 @@ jobs:
       packages: write
     steps:
       - name: Delete untagged versions
+        continue-on-error: true
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         with:
           package-name: ${{ env.PACKAGE_NAME }}
@@ -37,6 +38,7 @@ jobs:
   prune-old-sha:
     name: Prune old SHA tags
     runs-on: ubuntu-latest
+    needs: prune-untagged
     if: github.event_name != 'delete'
     permissions:
       packages: write
