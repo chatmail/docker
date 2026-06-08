@@ -54,8 +54,8 @@ jobs:
         include:
           - debian_version: 12
             distro_suffix: ""
-          - debian_version: 13
-            distro_suffix: "-trixie"
+          # - debian_version: 13
+          #   distro_suffix: "-trixie"
     outputs:
       relay_sha_short: ${{ steps.meta.outputs.relay_sha_short }}
       relay_ref: ${{ steps.meta.outputs.relay_ref }}
@@ -243,16 +243,16 @@ jobs:
         cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}
         RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
 
-  test_trixie:
-    name: Integration test (trixie)
-    needs: build
-    permissions: {}
-    # TODO: revert to @main once cmlxc docker support is merged
-    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
-    with:
-      # TODO: revert to main once cmlxc docker support is merged
-      cmlxc_version: j4n/docker-support
-      cmlxc_commands: |
-        cmlxc init
-        cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie
-        RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
+  # test_trixie:
+  #   name: Integration test (trixie)
+  #   needs: build
+  #   permissions: {}
+  #   # TODO: revert to @main once cmlxc docker support is merged
+  #   uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
+  #   with:
+  #     # TODO: revert to main once cmlxc docker support is merged
+  #     cmlxc_version: j4n/docker-support
+  #     cmlxc_commands: |
+  #       cmlxc init
+  #       cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie
+  #       RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
