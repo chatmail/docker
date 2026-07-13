@@ -86,6 +86,24 @@ else
     echo "$current_fp" > "$FINGERPRINT_FILE"
 fi
 
+# Auto-fix ACME agreement acceptance if email is provided
+if [ -n "${ACME_EMAIL:-}" ]; then
+    echo "[INFO] Auto-configuring ACME with email: $ACME_EMAIL"
+    cat > /var/lib/acme/conf/responses << ACME_EOF
+"acme-enter-email": "$ACME_EMAIL"
+"acme-agreement:https://letsencrypt.org/documents/LE-SA-v1.7-June-04-2026.pdf": true
+"acme-agreement:https://letsencrypt.org/documents/LE-SA-v1.8-July-06-2026.pdf": true
+ACME_EOF
+
+    # Trigger certificate reconciliation
+    if command -v acmetool >/dev/null 2>&1; then
+        echo "[INFO] Running acmetool reconcile with accepted terms"
+        acmetool reconcile --batch 2>&1 | while IFS= read -r line; do
+            echo "[INFO] acmetool: $line"
+        done || echo "[WARN] acmetool reconcile failed, will retry via timer"
+    fi
+fi
+
 # Signal success to Docker healthcheck
 touch /run/chatmail-init.done
 

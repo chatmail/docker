@@ -34,6 +34,9 @@ services:
       # - ./scripts/entrypoint.sh:/entrypoint.sh
 
     # environment:
+      ## Auto-accept ACME terms with provided email (reads from .env):
+      # ACME_EMAIL: "${ACME_EMAIL}"
+      ##
       ## Mount certs (above) and set TLS_EXTERNAL_CERT_AND_KEY to in-container paths.
       ## A tls-cert-reload.path watcher inside the container reloads services
       ## when the cert file changes. However, inotify does not cross bind-mount

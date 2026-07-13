@@ -77,11 +77,16 @@ cd docker
 
 ### Configure and start
 
-1. Set the fully qualified domain name (use `chat.example.org` or your own domain):
+1. Set the fully qualified domain name and email (use `chat.example.org` or your own domain):
 
    ```bash
    echo 'MAIL_DOMAIN=chat.example.org' > .env
+   echo 'ACME_EMAIL=admin@example.org' >> .env
    ```
+
+   **Environment variables:**
+   - `MAIL_DOMAIN`: Your fully qualified domain name (required)
+   - `ACME_EMAIL`: Email for Let's Encrypt notifications (recommended)
 
    The container generates a `chatmail.ini` with defaults from `MAIL_DOMAIN` on first start.
    To customize chatmail settings, mount your own `chatmail.ini` instead
@@ -212,6 +217,58 @@ in `docker-compose.override.yaml`.
 
 Changed certificates are picked up automatically via inotify. See the examples in
 `docker-compose.override.yaml.example` for details.
+
+## Troubleshooting
+
+### ACME agreement prompt error
+
+If you encounter an error like:
+
+```
+acme.interactor: interaction auto-responder couldn't give a canned response: 
+unknown unique ID, cannot respond: "acme-agreement:https://letsencrypt.org/..."
+cannot prompt the user: currently non-interactive; try running without --batch flag
+```
+
+This means acmetool cannot prompt for Let's Encrypt agreement acceptance in the non-interactive Docker environment.
+
+**Solution 1: Set ACME_EMAIL in .env (automatic)**
+
+If you set `ACME_EMAIL` in your `.env` file, the container will automatically accept the ACME terms during initialization:
+
+```bash
+# Add email to .env
+echo 'ACME_EMAIL=admin@example.org' >> .env
+
+# Restart container to apply
+docker compose down
+docker compose up -d
+```
+
+The container init script will automatically:
+1. Create the ACME responses file with your email
+2. Accept Let's Encrypt terms
+3. Obtain TLS certificates
+
+**Solution 2: Manual fix with fix-acme-agreement.sh**
+
+If the container is already running and you need to fix it manually:
+
+```bash
+# Download and run the helper script
+wget https://raw.githubusercontent.com/chatmail/docker/main/scripts/fix-acme-agreement.sh
+chmod +x fix-acme-agreement.sh
+
+# Run with email from .env or provide directly
+./fix-acme-agreement.sh
+# or: ./fix-acme-agreement.sh admin@example.org
+```
+
+No container restart required with this method.
+
+**Alternative: Use external TLS certificates**
+
+If you prefer to manage certificates outside the container (e.g., with certbot on the host), see [External TLS certificates](#external-tls-certificates) above.
 
 ## Migrating from a bare-metal install
 
