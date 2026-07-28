@@ -83,6 +83,12 @@ cd docker
    echo 'MAIL_DOMAIN=chat.example.org' > .env
    ```
 
+   Optionally add a contact address for Let's Encrypt renewal notices:
+
+   ```bash
+   echo 'ACME_EMAIL=admin@example.org' >> .env
+   ```
+
    The container generates a `chatmail.ini` with defaults from `MAIL_DOMAIN` on first start.
    To customize chatmail settings, mount your own `chatmail.ini` instead
    (see [Custom chatmail.ini](#custom-chatmailiini) below).

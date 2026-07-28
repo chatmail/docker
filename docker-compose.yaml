@@ -39,6 +39,7 @@ services:
         max-file: "3"
     environment:
       MAIL_DOMAIN: $MAIL_DOMAIN
+      ACME_EMAIL: ${ACME_EMAIL:-}
     network_mode: "host"
     volumes:
       ## system (required)
