@@ -41,6 +41,13 @@ if [ -n "${TLS_EXTERNAL_CERT_AND_KEY:-}" ]; then
     fi
 fi
 
+# Inject ACME contact email from env var unless defined in chatmail.ini.
+if [ -n "${ACME_EMAIL:-}" ]; then
+    if ! grep -q '^acme_email' "$CHATMAIL_INI"; then
+        echo "acme_email = $ACME_EMAIL" >> "$CHATMAIL_INI"
+    fi
+fi
+
 # Ensure mailboxes directory exists (chatmail-metadata needs it at startup,
 # but Dovecot only creates it on first mail delivery)
 mkdir -p "/home/vmail/mail/${MAIL_DOMAIN}"
