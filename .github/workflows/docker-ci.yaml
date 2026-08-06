@@ -234,10 +234,10 @@ jobs:
     needs: build
     permissions: {}
     # TODO: revert to @main once cmlxc docker support is merged
-    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
+    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/dualstack-dns
     with:
       # TODO: revert to main once cmlxc docker support is merged
-      cmlxc_version: j4n/docker-support
+      cmlxc_version: j4n/dualstack-dns
       cmlxc_commands: |
         cmlxc init
         cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}
@@ -248,10 +248,10 @@ jobs:
   #   needs: build
   #   permissions: {}
   #   # TODO: revert to @main once cmlxc docker support is merged
-  #   uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-support
+  #   uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/dualstack-dns
   #   with:
   #     # TODO: revert to main once cmlxc docker support is merged
-  #     cmlxc_version: j4n/docker-support
+  #     cmlxc_version: j4n/dualstack-dns
   #     cmlxc_commands: |
   #       cmlxc init
   #       cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie
