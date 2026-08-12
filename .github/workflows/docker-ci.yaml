@@ -234,11 +234,14 @@ jobs:
     needs: build
     permissions: {}
     # TODO: revert to @main once cmlxc docker support is merged
-    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/dualstack-dns
+    uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-driver
     with:
       # TODO: revert to main once cmlxc docker support is merged
-      cmlxc_version: j4n/dualstack-dns
+      cmlxc_version: j4n/docker-driver
       cmlxc_commands: |
+        # Docker-in-LXC needs systemd unconfined to reach its cgroup socket.
+        sudo systemctl stop apparmor || true
+        sudo apparmor_parser -R /etc/apparmor.d/* 2>/dev/null || true
         cmlxc init
         cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}
         RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
@@ -248,11 +251,14 @@ jobs:
   #   needs: build
   #   permissions: {}
   #   # TODO: revert to @main once cmlxc docker support is merged
-  #   uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/dualstack-dns
+  #   uses: chatmail/cmlxc/.github/workflows/lxc-test.yml@j4n/docker-driver
   #   with:
   #     # TODO: revert to main once cmlxc docker support is merged
-  #     cmlxc_version: j4n/dualstack-dns
+  #     cmlxc_version: j4n/docker-driver
   #     cmlxc_commands: |
+  #       # Docker-in-LXC needs systemd unconfined to reach its cgroup socket.
+  #       sudo systemctl stop apparmor || true
+  #       sudo apparmor_parser -R /etc/apparmor.d/* 2>/dev/null || true
   #       cmlxc init
   #       cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie
   #       RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
