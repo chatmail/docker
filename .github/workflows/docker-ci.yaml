@@ -1,11 +1,11 @@
 # Build and push the chatmail-relay Docker image (ghcr.io/chatmail/docker).
 #
 # Triggers:
-#   1. Push/PR to this repo (Dockerfile changes) -- builds relay@main
-#   2. repository_dispatch from chatmail/relay -- builds the dispatched relay ref
-#   3. workflow_dispatch -- manual build of any relay branch/tag
+#   1. Push/PR to this repo (Dockerfile changes): builds relay@main
+#   2. repository_dispatch from chatmail/relay: builds the dispatched relay ref
+#   3. workflow_dispatch: manual build of any relay branch/tag
 #
-# Tags: sha-<relay-7char>[distro_suffix], branch name[distro_suffix], semver release tags (Bookworm only)
+# Tags: sha-<relay-7char>[distro_suffix], branch name[distro_suffix], semver release tags
 # PRs: build only, no push
 
 name: Build and push chatmail-relay image
@@ -244,7 +244,7 @@ jobs:
         sudo apparmor_parser -R /etc/apparmor.d/* 2>/dev/null || true
         cmlxc init
         cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}
-        RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
+        cmlxc test-cmdeploy dock0
 
   # test_trixie:
   #   name: Integration test (trixie)
@@ -261,4 +261,4 @@ jobs:
   #       sudo apparmor_parser -R /etc/apparmor.d/* 2>/dev/null || true
   #       cmlxc init
   #       cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie
-  #       RELAY_REF=${{ needs.build.outputs.relay_ref }} cmlxc test-cmdeploy dock0
+  #       cmlxc test-cmdeploy dock0
