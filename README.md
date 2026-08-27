@@ -75,6 +75,15 @@ git clone https://github.com/chatmail/docker
 cd docker
 ```
 
+### podman-compose / source builds
+
+`podman-compose up` builds the image locally by default, but the build needs
+`cmdeploy/` and `chatmaild/` from [chatmail/relay](https://github.com/chatmail/relay):
+
+- `git clone https://github.com/chatmail/relay` first, and then
+- `git clone https://github.com/chatmail/docker relay/docker` to clone this repo inside it
+- Run `podman-compose up -d` from `relay/docker`.
+
 ### Configure and start
 
 1. Set the fully qualified domain name (use `chat.example.org` or your own domain):
