@@ -243,7 +243,7 @@ jobs:
         sudo systemctl stop apparmor || true
         sudo apparmor_parser -R /etc/apparmor.d/* 2>/dev/null || true
         cmlxc init
-        cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}
+        cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }} --compose https://raw.githubusercontent.com/chatmail/docker/${{ github.event.pull_request.head.sha || github.sha }}/docker-compose.yaml
         cmlxc test-cmdeploy dock0
 
   # test_trixie:
@@ -260,5 +260,5 @@ jobs:
   #       sudo systemctl stop apparmor || true
   #       sudo apparmor_parser -R /etc/apparmor.d/* 2>/dev/null || true
   #       cmlxc init
-  #       cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie
+  #       cmlxc docker deploy dock0 --source ghcr:sha-${{ needs.build.outputs.relay_sha_short }}-trixie --compose https://raw.githubusercontent.com/chatmail/docker/${{ github.event.pull_request.head.sha || github.sha }}/docker-compose.yaml
   #       cmlxc test-cmdeploy dock0

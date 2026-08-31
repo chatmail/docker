@@ -2,15 +2,8 @@
 # volumes, env overrides) in docker-compose.override.yaml instead.
 # See docker-compose.override.yaml.example in this directory for a starting point.
 #
-# Security notes: this container uses 
-#  - network_mode:host chatmail needs many ports (25, 53, 80, 143, 443, 465,
-#  587, 993, 3340, 8443) and needs to operate from the real IP, which bridging
-#  would make tricky
-#  - cgroup:host (required for systemd). 
-#  Together these give the container near-host-level access. This is acceptable
-#  for a dedicated mail server, but be aware that the container can bind any
-#  port and see all host network traffic.
-
+# Network mode: Bridged with port mappings
+# cgroup:host required for systemd.
 services:
   chatmail:
     build:
@@ -40,7 +33,15 @@ services:
     environment:
       MAIL_DOMAIN: $MAIL_DOMAIN
       ACME_EMAIL: ${ACME_EMAIL:-}
-    network_mode: "host"
+    ports:
+      - "25:25"
+      - "80:80"
+      - "143:143"
+      - "443:443"
+      - "465:465"
+      - "587:587"
+      - "993:993"
+      - "3340:3340"
     volumes:
       ## system (required)
       - /sys/fs/cgroup:/sys/fs/cgroup:rw

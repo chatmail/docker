@@ -1,0 +1,9 @@
+# Alternative compose override for host networking mode, giving direct network access to the container.
+#
+# Run with: docker compose -f docker-compose.yaml -f docker-compose.host-mode.yaml up
+
+services:
+  chatmail:
+    network_mode: "host"
+    # Host mode requires cgroup:host for systemd.
+    cgroup: host

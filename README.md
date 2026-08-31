@@ -75,6 +75,43 @@ git clone https://github.com/chatmail/docker
 cd docker
 ```
 
+### Building from source
+
+The default configuration uses explicit port mappings and works with both `docker compose` and `podman-compose`.
+
+`podman-compose up` builds the image locally by default, but the build needs
+`cmdeploy/` and `chatmaild/` from [chatmail/relay](https://github.com/chatmail/relay):
+
+- `git clone https://github.com/chatmail/relay` first, and then
+- `git clone https://github.com/chatmail/docker relay/docker` to clone this repo inside it
+- Run `podman-compose up -d` from `relay/docker`.
+
+## Networking modes
+
+The container can operate in two modes:
+
+### Bridged mode (default, recommended)
+
+Uses explicit port mappings and standard Docker bridging, only tested with
+`docker compose`.
+
+By default, client IPs never reach the services and thus can't/won't be logged
+as Docker's userland-proxy terminates connections before they reach the
+container's network stack. It can be disabled host-wide wide by
+setting`"userland-proxy": false` in `/etc/docker/daemon.json`, see 
+[docs](https://docs.docker.com/reference/cli/dockerd/#daemon-configuration-file)).
+
+Publishing ports in bridged mode implies Docker inserting its iptables rules
+ahead of of anything an operator may set up, so be aware.
+
+### Host mode (alternative)
+
+Gives container near-host-level network access without port mappings.
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.host-mode.yaml up -d
+```
+
 ### Configure and start
 
 1. Set the fully qualified domain name (use `chat.example.org` or your own domain):
