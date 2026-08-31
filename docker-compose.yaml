@@ -1,5 +1,4 @@
 # Base compose file — do not edit. Put customizations (data paths, extra
-:xa
 # volumes, env overrides) in docker-compose.override.yaml instead.
 # See docker-compose.override.yaml.example in this directory for a starting point.
 #
