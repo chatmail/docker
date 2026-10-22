@@ -28,6 +28,10 @@ RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
     /lib/systemd/system/plymouth* \
     /lib/systemd/system/systemd-update-utmp*
 
+# Forward journald to console so `docker compose logs` works
+RUN mkdir -p /etc/systemd/journald.conf.d \
+    && printf '[Journal]\nForwardToConsole=yes\n' > /etc/systemd/journald.conf.d/95-docker-console.conf
+
 VOLUME [ "/sys/fs/cgroup" ]
 
 # Main chatmail-relay image
